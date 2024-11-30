@@ -1,4 +1,4 @@
-# Email-to-SMS Alert System
+# Gmail-to-SMS Alert System
 
 A Python-based service that monitors a Gmail inbox for new emails and forwards them as SMS messages using Twilio. Includes a secure web interface for configuration management.
 
