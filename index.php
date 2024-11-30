@@ -1,69 +1,34 @@
 <?php
-/**
- * Configuration Web Interface for Email-to-SMS Script
- * 
- * This script provides a secure web interface for managing the Email-to-SMS service configuration.
- * It implements:
- * - Session-based authentication
- * - Configuration file reading and writing
- * - Form handling for updating settings
- * - Modern, responsive UI with clean design
- * 
- * Key Features:
- * - Secure login system
- * - Configuration management for Twilio settings
- * - Input validation and sanitization
- * - Error handling for file operations
- * - Mobile-responsive design
- * 
- * Requirements:
- * - PHP 7.x or higher
- * - Write permissions on config.ini
- * - Session support enabled
- * 
- * Author: Seth Morrow
- * Date: 11-26-24
- */
-
-// Initialize session for login management
 session_start();
 
-// Authentication credentials
-// TODO: Move these to a secure configuration file
-$username = 'admin';          // Replace with your desired username
-$password = 'yourpassword';   // Replace with your desired password
+$username = 'admin';
+$password = 'yourpassword';
 
-// Login handling logic
 if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-        // Validate submitted credentials
         if ($_POST['username'] === $username && $_POST['password'] === $password) {
             $_SESSION['logged_in'] = true;
         } else {
             $error = 'Invalid username or password.';
         }
     } else {
-        // Display login form if not logged in
         ?>
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Login - Configuration Interface</title>
+            <title>Gmail2sms Configuration</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                /* CSS Variables for consistent theming */
                 :root {
-                    --primary-color: #2563eb;    /* Main blue color */
-                    --secondary-color: #1e40af;  /* Darker blue for hover states */
-                    --background-color: #f8fafc; /* Light gray background */
-                    --card-background: #ffffff;  /* White card background */
-                    --text-color: #1f2937;      /* Dark gray text */
-                    --border-color: #e2e8f0;    /* Light gray borders */
-                    --error-color: #ef4444;     /* Red for error messages */
+                    --primary-color: #2563eb;
+                    --secondary-color: #1e40af;
+                    --background-color: #f8fafc;
+                    --card-background: #ffffff;
+                    --text-color: #1f2937;
+                    --border-color: #e2e8f0;
+                    --error-color: #ef4444;
                 }
-
-                /* Base styles */
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
                     margin: 0;
@@ -76,23 +41,17 @@ if (!isset($_SESSION['logged_in'])) {
                     align-items: center;
                     justify-content: center;
                 }
-
-                /* Container styles */
                 .container {
                     width: 100%;
                     max-width: 400px;
                     padding: 0 1rem;
                 }
-
-                /* Card component styles */
                 .card {
                     background: var(--card-background);
                     border-radius: 8px;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
                     padding: 2rem;
                 }
-
-                /* Typography */
                 h1 {
                     color: var(--text-color);
                     font-size: 1.875rem;
@@ -100,29 +59,28 @@ if (!isset($_SESSION['logged_in'])) {
                     margin-bottom: 1.5rem;
                     text-align: center;
                 }
-
-                /* Error message styles */
                 .error {
                     color: var(--error-color);
                     text-align: center;
                     margin-bottom: 1rem;
+                    padding: 0.75rem;
+                    background-color: rgba(239, 68, 68, 0.1);
+                    border-radius: 6px;
                 }
-
-                /* Form styles */
                 form {
                     display: flex;
                     flex-direction: column;
-                    gap: 1rem;
+                    gap: 1.5rem;
                 }
-
-                /* Form label styles */
+                .form-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
                 label {
-                    display: block;
                     font-weight: 500;
-                    margin-bottom: 0.5rem;
+                    color: var(--text-color);
                 }
-
-                /* Form input styles */
                 input[type="text"],
                 input[type="password"] {
                     width: 100%;
@@ -132,16 +90,12 @@ if (!isset($_SESSION['logged_in'])) {
                     font-size: 1rem;
                     transition: border-color 0.15s ease;
                 }
-
-                /* Input focus states */
                 input[type="text"]:focus,
                 input[type="password"]:focus {
                     outline: none;
                     border-color: var(--primary-color);
                     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
                 }
-
-                /* Submit button styles */
                 input[type="submit"] {
                     background-color: var(--primary-color);
                     color: white;
@@ -152,9 +106,8 @@ if (!isset($_SESSION['logged_in'])) {
                     font-weight: 500;
                     cursor: pointer;
                     transition: background-color 0.15s ease;
+                    width: 100%;
                 }
-
-                /* Submit button hover state */
                 input[type="submit"]:hover {
                     background-color: var(--secondary-color);
                 }
@@ -164,17 +117,14 @@ if (!isset($_SESSION['logged_in'])) {
             <div class="container">
                 <div class="card">
                     <h1>Login</h1>
-                    <?php 
-                    // Display error message if authentication failed
-                    if (isset($error)) echo '<p class="error">' . htmlspecialchars($error) . '</p>'; 
-                    ?>
+                    <?php if (isset($error)) echo '<p class="error">' . htmlspecialchars($error) . '</p>'; ?>
                     <form method="post">
                         <input type="hidden" name="login" value="1">
-                        <div>
+                        <div class="form-group">
                             <label for="username">Username</label>
-                            <input type="text" id="username" name="username" required>
+                            <input type="text" id="username" name="username" required autofocus>
                         </div>
-                        <div>
+                        <div class="form-group">
                             <label for="password">Password</label>
                             <input type="password" id="password" name="password" required>
                         </div>
@@ -189,25 +139,25 @@ if (!isset($_SESSION['logged_in'])) {
     }
 }
 
-// Configuration file path
 $config_file = '/var/www/html/plcalerts/config.ini';
 
-// Verify config file exists
 if (!file_exists($config_file)) {
     die('Configuration file not found.');
 }
 
-// Handle configuration form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
-    // Retrieve and sanitize form data
-    $twilio_account_sid = $_POST['account_sid'];
-    $twilio_auth_token = $_POST['auth_token'];
-    $twilio_from_number = $_POST['from_number'];
-    $destination_number = $_POST['destination_number'];
-    $max_sms_length = $_POST['max_sms_length'];
+    $gmail_username = trim($_POST['gmail_username']);
+    $gmail_password = trim($_POST['gmail_password']);
+    $twilio_account_sid = trim($_POST['account_sid']);
+    $twilio_auth_token = trim($_POST['auth_token']);
+    $twilio_from_number = trim($_POST['from_number']);
+    $destination_number = trim($_POST['destination_number']);
+    $max_sms_length = intval($_POST['max_sms_length']);
 
-    // Construct new configuration content
-    $new_config = "[Twilio]\n";
+    $new_config = "[Gmail]\n";
+    $new_config .= "username = $gmail_username\n";
+    $new_config .= "password = $gmail_password\n\n";
+    $new_config .= "[Twilio]\n";
     $new_config .= "account_sid = $twilio_account_sid\n";
     $new_config .= "auth_token = $twilio_auth_token\n";
     $new_config .= "from_number = $twilio_from_number\n";
@@ -215,25 +165,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     $new_config .= "[Settings]\n";
     $new_config .= "max_sms_length = $max_sms_length\n";
 
-    // Attempt to save configuration
     if (file_put_contents($config_file, $new_config)) {
         $message = 'Configuration saved successfully.';
+        $message_type = 'success';
     } else {
         $message = 'Failed to save configuration. Please check file permissions.';
+        $message_type = 'error';
     }
 }
 
-// Load current configuration
 $config = parse_ini_file($config_file, true);
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Configure Script Variables</title>
+    <title>Email-to-SMS Configuration</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* CSS Variables for consistent theming */
         :root {
             --primary-color: #2563eb;
             --secondary-color: #1e40af;
@@ -242,9 +191,8 @@ $config = parse_ini_file($config_file, true);
             --text-color: #1f2937;
             --border-color: #e2e8f0;
             --success-color: #22c55e;
+            --error-color: #ef4444;
         }
-
-        /* Base styles */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             margin: 0;
@@ -253,62 +201,62 @@ $config = parse_ini_file($config_file, true);
             color: var(--text-color);
             line-height: 1.6;
         }
-
-        /* Layout containers */
         .container {
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
         }
-
-        /* Card component */
         .card {
             background: var(--card-background);
             border-radius: 8px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             padding: 2rem;
         }
-
-        /* Typography */
         h1 {
             color: var(--text-color);
             font-size: 1.875rem;
             font-weight: 600;
             margin-bottom: 1.5rem;
         }
-
-        /* Success message styles */
         .message {
-            color: var(--success-color);
             padding: 1rem;
             border-radius: 6px;
-            background-color: rgba(34, 197, 94, 0.1);
             margin-bottom: 1.5rem;
         }
-
-        /* Form layout */
+        .message.success {
+            color: var(--success-color);
+            background-color: rgba(34, 197, 94, 0.1);
+        }
+        .message.error {
+            color: var(--error-color);
+            background-color: rgba(239, 68, 68, 0.1);
+        }
         form {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
         }
-
-        /* Form group container */
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-
-        /* Form labels */
+        .form-section {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
         label {
             font-weight: 500;
             color: var(--text-color);
         }
-
-        /* Form inputs */
         input[type="text"],
         input[type="password"],
+        input[type="email"],
         input[type="number"] {
             width: 100%;
             padding: 0.75rem;
@@ -317,17 +265,14 @@ $config = parse_ini_file($config_file, true);
             font-size: 1rem;
             transition: border-color 0.15s ease;
         }
-
-        /* Input focus states */
         input[type="text"]:focus,
         input[type="password"]:focus,
+        input[type="email"]:focus,
         input[type="number"]:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-
-        /* Submit button */
         input[type="submit"] {
             background-color: var(--primary-color);
             color: white;
@@ -340,54 +285,102 @@ $config = parse_ini_file($config_file, true);
             transition: background-color 0.15s ease;
             align-self: flex-start;
         }
-
-        /* Submit button hover state */
         input[type="submit"]:hover {
             background-color: var(--secondary-color);
+        }
+        .description {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+        }
+        .logout {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .logout:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <h1>Configure Script Variables</h1>
-            <?php 
-            // Display success/error message if present
-            if (isset($message)) echo '<p class="message">' . htmlspecialchars($message) . '</p>'; 
-            ?>
+            <h1>Gmail2sms Configuration</h1>
+            <?php if (isset($message)) : ?>
+                <p class="message <?php echo $message_type; ?>"><?php echo htmlspecialchars($message); ?></p>
+            <?php endif; ?>
+            
             <form method="post">
-                <!-- Form groups for Twilio configuration -->
-                <div class="form-group">
-                    <label for="from_number">Twilio From Number</label>
-                    <input type="text" id="from_number" name="from_number" 
-                           value="<?php echo htmlspecialchars($config['Twilio']['from_number']); ?>" required>
+                <div class="form-section">
+                    <h2>Gmail Settings</h2>
+                    <div class="form-group">
+                        <label for="gmail_username">Gmail Username</label>
+                        <input type="email" id="gmail_username" name="gmail_username" 
+                               value="<?php echo htmlspecialchars($config['Gmail']['username']); ?>" required>
+                        <p class="description">Your Gmail email address</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gmail_password">Gmail App Password</label>
+                        <input type="password" id="gmail_password" name="gmail_password" 
+                               value="<?php echo htmlspecialchars($config['Gmail']['password']); ?>" required>
+                        <p class="description">Your Gmail App Password (not your regular Gmail password)</p>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="destination_number">Destination Number</label>
-                    <input type="text" id="destination_number" name="destination_number" 
-                           value="<?php echo htmlspecialchars($config['Twilio']['destination_number']); ?>" required>
+                <div class="form-section">
+                    <h2>Twilio Settings</h2>
+                    <div class="form-group">
+                        <label for="destination_number">Destination Number</label>
+                        <input type="text" id="destination_number" name="destination_number" 
+                               value="<?php echo htmlspecialchars($config['Twilio']['destination_number']); ?>" required>
+                        <p class="description">The phone number to send SMS to (format: +1XXXXXXXXXX)</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="from_number">From Number</label>
+                        <input type="text" id="from_number" name="from_number" 
+                               value="<?php echo htmlspecialchars($config['Twilio']['from_number']); ?>" required>
+                        <p class="description">Your Twilio phone number (format: +1XXXXXXXXXX)</p>
+                    </div>
+
+                    
+                    <div class="form-group">
+                        <label for="account_sid">Account SID</label>
+                        <input type="text" id="account_sid" name="account_sid" 
+                               value="<?php echo htmlspecialchars($config['Twilio']['account_sid']); ?>" required>
+                        <p class="description">Your Twilio Account SID</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="auth_token">Auth Token</label>
+                        <input type="password" id="auth_token" name="auth_token" 
+                               value="<?php echo htmlspecialchars($config['Twilio']['auth_token']); ?>" required>
+                        <p class="description">Your Twilio Auth Token</p>
+                    </div>
+
+                   
                 </div>
 
-                <div class="form-group">
-                    <label for="max_sms_length">Max SMS Length</label>
-                    <input type="number" id="max_sms_length" name="max_sms_length" 
-                           value="<?php echo htmlspecialchars($config['Settings']['max_sms_length']); ?>" required>
+                <div class="form-section">
+                    <h2>Other Settings</h2>
+                    <div class="form-group">
+                        <label for="max_sms_length">Max SMS Length</label>
+                        <input type="number" id="max_sms_length" name="max_sms_length" 
+                               value="<?php echo htmlspecialchars($config['Settings']['max_sms_length']); ?>" required>
+                        <p class="description">Maximum length of SMS messages before truncation</p>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="account_sid">Twilio Account SID</label>
-                    <input type="text" id="account_sid" name="account_sid" 
-                           value="<?php echo htmlspecialchars($config['Twilio']['account_sid']); ?>" required>
+                <div class="actions">
+                    <input type="submit" name="save" value="Save Configuration">
+                    <a href="?logout=1" class="logout">Logout</a>
                 </div>
-
-                <div class="form-group">
-                    <label for="auth_token">Twilio Auth Token</label>
-                    <input type="password" id="auth_token" name="auth_token" 
-                           value="<?php echo htmlspecialchars($config['Twilio']['auth_token']); ?>" required>
-                </div>
-
-                <input type="submit" name="save" value="Save Configuration">
             </form>
         </div>
     </div>
