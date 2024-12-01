@@ -12,6 +12,15 @@ from slack_sdk.errors import SlackApiError
 def load_config(config_file='/var/www/html/config.ini'):
     """
     Load configuration variables from the specified INI file.
+
+    Args:
+        config_file (str): Path to the configuration INI file.
+
+    Returns:
+        ConfigParser: A ConfigParser object containing the loaded configuration.
+
+    Raises:
+        Exception: If the configuration file cannot be read.
     """
     print(f"Attempting to load config from: {config_file}")
     config = configparser.ConfigParser()
@@ -24,7 +33,17 @@ def load_config(config_file='/var/www/html/config.ini'):
 
 def connect_to_gmail(username, password):
     """
-    Connect to Gmail's IMAP server and authenticate.
+    Connect to Gmail's IMAP server and authenticate using provided credentials.
+
+    Args:
+        username (str): Gmail username.
+        password (str): Gmail password.
+
+    Returns:
+        imaplib.IMAP4_SSL: Authenticated IMAP connection object.
+
+    Raises:
+        Exception: If the connection or login fails.
     """
     try:
         imap = imaplib.IMAP4_SSL("imap.gmail.com")
@@ -37,6 +56,12 @@ def connect_to_gmail(username, password):
 def fetch_unread_emails(imap):
     """
     Fetch unread emails from the Gmail inbox.
+
+    Args:
+        imap (IMAP4_SSL): Authenticated IMAP connection object.
+
+    Returns:
+        list: List of tuples containing email IDs and message objects.
     """
     try:
         imap.select("inbox")  # Select the inbox folder
@@ -62,6 +87,12 @@ def fetch_unread_emails(imap):
 def extract_email_body(msg):
     """
     Extract the plain text body from an email message.
+
+    Args:
+        msg (EmailMessage): The email message object.
+
+    Returns:
+        str: The plain text body of the email.
     """
     try:
         if msg.is_multipart():
@@ -77,6 +108,16 @@ def extract_email_body(msg):
 def send_sms_via_twilio(account_sid, auth_token, from_number, to_number, body):
     """
     Send an SMS message using the Twilio API.
+
+    Args:
+        account_sid (str): Twilio Account SID.
+        auth_token (str): Twilio authentication token.
+        from_number (str): Twilio phone number.
+        to_number (str): Destination phone number.
+        body (str): SMS message body.
+
+    Returns:
+        str: The message SID if sent successfully, otherwise None.
     """
     try:
         client = Client(account_sid, auth_token)
@@ -93,28 +134,24 @@ def send_sms_via_twilio(account_sid, auth_token, from_number, to_number, body):
 def send_slack_message(token, channel, body):
     """
     Send a message to Slack using the Slack SDK.
-    Returns the message timestamp if successful, None otherwise.
+
+    Args:
+        token (str): Slack API token.
+        channel (str): Slack channel to send the message to.
+        body (str): The message body to send.
+
+    Returns:
+        str: The message timestamp if successful, otherwise None.
     """
     if not token or not channel:
         print("Slack token or channel not configured properly")
         return None
 
-    # Ensure channel starts with #
     if not channel.startswith('#'):
         channel = f'#{channel}'
 
     try:
         client = WebClient(token=token)
-        
-        # Add debug information
-        try:
-            auth_test = client.auth_test()
-            print(f"Connected to Slack as: {auth_test['user']} in workspace: {auth_test['team']}")
-        except SlackApiError as e:
-            print(f"Failed to verify Slack credentials: {e.response['error']}")
-            return None
-
-        # Format message with alert prefix
         formatted_body = f"*E-MAIL ALERT:*\n{body}"
 
         response = client.chat_postMessage(
@@ -125,16 +162,21 @@ def send_slack_message(token, channel, body):
         return response["ts"]
     except SlackApiError as e:
         print(f"Failed to send Slack message: {e}")
-        print(f"Error details: {e.response['error']}")
         return None
     except Exception as e:
         print(f"Unexpected error sending Slack message: {e}")
-        print(f"Error type: {type(e)}")
         return None
 
 def mark_as_read(imap, email_id):
     """
-    Mark an email as read using IMAP STORE command.
+    Mark an email as read using the IMAP STORE command.
+
+    Args:
+        imap (IMAP4_SSL): Authenticated IMAP connection object.
+        email_id (str): ID of the email to mark as read.
+
+    Returns:
+        bool: True if marked successfully, False otherwise.
     """
     try:
         imap.store(email_id, '+FLAGS', '\\Seen')
@@ -145,11 +187,11 @@ def mark_as_read(imap, email_id):
 
 def main():
     """
-    Main function to execute the email-to-SMS process continuously.
+    Main function to monitor Gmail for unread emails and send notifications via SMS or Slack.
     """
     print("Starting email monitoring service...")
 
-    while True:  # Main loop
+    while True:
         imap = None
         try:
             # Load configuration variables
@@ -175,27 +217,13 @@ def main():
             SLACK_ENABLED = config.getboolean('Slack', 'enabled', fallback=False)
             if SLACK_ENABLED:
                 print("Slack notifications are enabled")
-                try:
-                    SLACK_TOKEN = config.get('Slack', 'token')
-                    SLACK_CHANNEL = config.get('Slack', 'channel')
-                    
-                    # Validate Slack settings
-                    if not SLACK_TOKEN or SLACK_TOKEN == "xoxb-your-token-here":
-                        print("Warning: Invalid Slack token configured")
-                        SLACK_ENABLED = False
-                    elif not SLACK_CHANNEL:
-                        print("Warning: No Slack channel configured")
-                        SLACK_ENABLED = False
-                except configparser.Error as e:
-                    print(f"Error reading Slack configuration: {e}")
-                    SLACK_ENABLED = False
+                SLACK_TOKEN = config.get('Slack', 'token')
+                SLACK_CHANNEL = config.get('Slack', 'channel')
             else:
                 print("Slack notifications are disabled")
 
-            # Verify that at least one notification method is enabled
             if not TWILIO_ENABLED and not SLACK_ENABLED:
-                print("Warning: Both SMS and Slack notifications are disabled!")
-                print("Waiting 30 seconds before checking configuration again...")
+                print("No notification methods enabled. Retrying in 30 seconds...")
                 time.sleep(30)
                 continue
 
@@ -211,12 +239,11 @@ def main():
             print(f"Found {len(unread_emails)} unread emails.")
 
             for email_id, msg in unread_emails:
-                # Extract email subject and body
                 subject = str(msg.get('subject', ''))
                 body = extract_email_body(msg)
                 success = False
 
-                print(f"Processing email: {subject}")
+                print(f"Processingemail with subject: {subject}")
 
                 # Send SMS via Twilio if enabled
                 if TWILIO_ENABLED:
@@ -239,7 +266,7 @@ def main():
                     slack_ts = send_slack_message(
                         token=SLACK_TOKEN,
                         channel=SLACK_CHANNEL,
-                        body=body  # Full body will be sent to Slack
+                        body=body  # Full email body is sent to Slack
                     )
                     if slack_ts:
                         print(f"Sent Slack message with timestamp: {slack_ts}")
@@ -263,10 +290,12 @@ def main():
             if imap:
                 try:
                     imap.logout()
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error while logging out from IMAP: {e}")
             print("Waiting 30 seconds before next check...")
             time.sleep(30)
 
 if __name__ == '__main__':
     main()
+
+
