@@ -6,8 +6,8 @@ ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 error_log("Script started");
 
-$username = 'mike';
-$password = 'dragon13';
+$username = 'yourUserName';
+$password = 'yourPassword';
 
 if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
