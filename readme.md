@@ -124,8 +124,8 @@ sudo systemctl restart apache2
 
 1. Access the web interface at `http://your-server/gmail2sms`
 2. Default login credentials:
-   - Username: `mike`
-   - Password: `dragon13`
+   - Username: `yourUserName`
+   - Password: `yourPassword`
    
    **IMPORTANT:** Change these credentials immediately after installation!
 
