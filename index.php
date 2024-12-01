@@ -1,8 +1,13 @@
 <?php
 session_start();
 
-$username = 'admin';
-$password = 'yourpassword';
+// Enable error logging
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+error_log("Script started");
+
+$username = 'mike';
+$password = 'dragon13';
 
 if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
@@ -12,6 +17,7 @@ if (!isset($_SESSION['logged_in'])) {
             $error = 'Invalid username or password.';
         }
     } else {
+        // Login form HTML
         ?>
         <!DOCTYPE html>
         <html>
@@ -20,96 +26,65 @@ if (!isset($_SESSION['logged_in'])) {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                :root {
-                    --primary-color: #2563eb;
-                    --secondary-color: #1e40af;
-                    --background-color: #f8fafc;
-                    --card-background: #ffffff;
-                    --text-color: #1f2937;
-                    --border-color: #e2e8f0;
-                    --error-color: #ef4444;
-                }
+                /* Login form styles */
                 body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                    font-family: Arial, sans-serif;
+                    background-color: #f5f5f5;
                     margin: 0;
                     padding: 0;
-                    background-color: var(--background-color);
-                    color: var(--text-color);
-                    line-height: 1.6;
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
                 }
                 .container {
-                    width: 100%;
-                    max-width: 400px;
-                    padding: 0 1rem;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
                 }
                 .card {
-                    background: var(--card-background);
+                    background-color: #fff;
+                    padding: 20px;
                     border-radius: 8px;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    padding: 2rem;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    max-width: 400px;
+                    width: 100%;
                 }
                 h1 {
-                    color: var(--text-color);
-                    font-size: 1.875rem;
-                    font-weight: 600;
-                    margin-bottom: 1.5rem;
+                    margin-top: 0;
+                    font-size: 24px;
                     text-align: center;
-                }
-                .error {
-                    color: var(--error-color);
-                    text-align: center;
-                    margin-bottom: 1rem;
-                    padding: 0.75rem;
-                    background-color: rgba(239, 68, 68, 0.1);
-                    border-radius: 6px;
-                }
-                form {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
                 }
                 .form-group {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.5rem;
+                    margin-bottom: 15px;
                 }
                 label {
-                    font-weight: 500;
-                    color: var(--text-color);
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: bold;
                 }
                 input[type="text"],
-                input[type="password"] {
+                input[type="password"],
+                input[type="email"] {
                     width: 100%;
-                    padding: 0.75rem;
-                    border: 1px solid var(--border-color);
-                    border-radius: 6px;
-                    font-size: 1rem;
-                    transition: border-color 0.15s ease;
-                }
-                input[type="text"]:focus,
-                input[type="password"]:focus {
-                    outline: none;
-                    border-color: var(--primary-color);
-                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    box-sizing: border-box;
                 }
                 input[type="submit"] {
-                    background-color: var(--primary-color);
-                    color: white;
-                    padding: 0.75rem 1.5rem;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: background-color 0.15s ease;
                     width: 100%;
+                    padding: 10px;
+                    background-color: #007BFF;
+                    border: none;
+                    border-radius: 4px;
+                    color: #fff;
+                    font-size: 16px;
+                    cursor: pointer;
                 }
                 input[type="submit"]:hover {
-                    background-color: var(--secondary-color);
+                    background-color: #0056b3;
+                }
+                .error {
+                    color: red;
+                    text-align: center;
                 }
             </style>
         </head>
@@ -139,42 +114,83 @@ if (!isset($_SESSION['logged_in'])) {
     }
 }
 
-$config_file = '/var/www/html/plcalerts/config.ini';
+// Configuration handling
+$config_file = '/var/www/html/config.ini';
 
 if (!file_exists($config_file)) {
+    error_log("Config file not found: " . $config_file);
     die('Configuration file not found.');
 }
 
+// Load existing configuration
+$config = parse_ini_file($config_file, true);
+error_log("Loaded config: " . print_r($config, true));
+
+// Set default values for toggles
+$twilio_enabled = false;
+if (isset($config['Twilio']['enabled'])) {
+    $twilio_enabled = filter_var($config['Twilio']['enabled'], FILTER_VALIDATE_BOOLEAN);
+    error_log("Read Twilio enabled from config: " . var_export($twilio_enabled, true));
+}
+
+$slack_enabled = false;
+if (isset($config['Slack']['enabled'])) {
+    $slack_enabled = filter_var($config['Slack']['enabled'], FILTER_VALIDATE_BOOLEAN);
+    error_log("Read Slack enabled from config: " . var_export($slack_enabled, true));
+}
+
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
+    error_log("Form submitted. POST data: " . print_r($_POST, true));
+
     $gmail_username = trim($_POST['gmail_username']);
     $gmail_password = trim($_POST['gmail_password']);
+    $twilio_enabled = isset($_POST['twilio_enabled']) ? 'true' : 'false';
     $twilio_account_sid = trim($_POST['account_sid']);
     $twilio_auth_token = trim($_POST['auth_token']);
     $twilio_from_number = trim($_POST['from_number']);
     $destination_number = trim($_POST['destination_number']);
+    $slack_enabled = isset($_POST['slack_enabled']) ? 'true' : 'false';
+    $slack_token = trim($_POST['slack_token']);
+    $slack_channel = trim($_POST['slack_channel']);
     $max_sms_length = intval($_POST['max_sms_length']);
 
+    error_log("Processing form - Twilio enabled: $twilio_enabled, Slack enabled: $slack_enabled");
+
+    // Prepare new configuration
     $new_config = "[Gmail]\n";
     $new_config .= "username = $gmail_username\n";
     $new_config .= "password = $gmail_password\n\n";
     $new_config .= "[Twilio]\n";
+    $new_config .= "enabled = $twilio_enabled\n";
     $new_config .= "account_sid = $twilio_account_sid\n";
     $new_config .= "auth_token = $twilio_auth_token\n";
     $new_config .= "from_number = $twilio_from_number\n";
     $new_config .= "destination_number = $destination_number\n\n";
+    $new_config .= "[Slack]\n";
+    $new_config .= "enabled = $slack_enabled\n";
+    $new_config .= "token = $slack_token\n";
+    $new_config .= "channel = $slack_channel\n\n";
     $new_config .= "[Settings]\n";
     $new_config .= "max_sms_length = $max_sms_length\n";
+
+    error_log("New config to write: " . $new_config);
 
     if (file_put_contents($config_file, $new_config)) {
         $message = 'Configuration saved successfully.';
         $message_type = 'success';
+        // Reload configuration after saving
+        $config = parse_ini_file($config_file, true);
+        // Update toggle states after save
+        $twilio_enabled = filter_var($config['Twilio']['enabled'], FILTER_VALIDATE_BOOLEAN);
+        $slack_enabled = filter_var($config['Slack']['enabled'], FILTER_VALIDATE_BOOLEAN);
+        error_log("After save - Twilio enabled: " . var_export($twilio_enabled, true) . ", Slack enabled: " . var_export($slack_enabled, true));
     } else {
         $message = 'Failed to save configuration. Please check file permissions.';
         $message_type = 'error';
+        error_log("Failed to save config file");
     }
 }
-
-$config = parse_ini_file($config_file, true);
 ?>
 <!DOCTYPE html>
 <html>
@@ -183,133 +199,155 @@ $config = parse_ini_file($config_file, true);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #1e40af;
-            --background-color: #f8fafc;
-            --card-background: #ffffff;
-            --text-color: #1f2937;
-            --border-color: #e2e8f0;
-            --success-color: #22c55e;
-            --error-color: #ef4444;
-        }
+        /* Configuration form styles */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
             margin: 0;
             padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
         }
         .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 30px;
         }
         .card {
-            background: var(--card-background);
+            background-color: #fff;
+            padding: 20px 30px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h1 {
-            color: var(--text-color);
-            font-size: 1.875rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
+            margin-top: 0;
+            font-size: 28px;
+            text-align: center;
         }
-        .message {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1.5rem;
-        }
-        .message.success {
-            color: var(--success-color);
-            background-color: rgba(34, 197, 94, 0.1);
-        }
-        .message.error {
-            color: var(--error-color);
-            background-color: rgba(239, 68, 68, 0.1);
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+        h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
         }
         .form-section {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 30px;
         }
-        .form-section h2 {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
         }
         label {
-            font-weight: 500;
-            color: var(--text-color);
+            font-weight: bold;
+            margin-bottom: 5px;
         }
         input[type="text"],
         input[type="password"],
         input[type="email"],
         input[type="number"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.15s ease;
-        }
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus,
-        input[type="number"]:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        input[type="submit"] {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.15s ease;
-            align-self: flex-start;
-        }
-        input[type="submit"]:hover {
-            background-color: var(--secondary-color);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
         }
         .description {
-            font-size: 0.875rem;
-            color: #666;
-            margin-top: 0.25rem;
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
         }
         .actions {
+            text-align: center;
+        }
+        input[type="submit"] {
+            padding: 12px 20px;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .toggle-container {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-top: 2rem;
+            justify-content: space-between;
         }
-        .logout {
-            color: var(--text-color);
-            text-decoration: none;
-            font-size: 0.875rem;
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
         }
-        .logout:hover {
-            text-decoration: underline;
+        .toggle-switch input {
+            display: none;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #007BFF;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .message.success {
+            background-color: #D4EDDA;
+            color: #155724;
+        }
+        .message.error {
+            background-color: #F8D7DA;
+            color: #721C24;
+        }
+        /* Hide fields initially */
+        .twilio-field, .slack-field {
+            display: none;
+        }
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+            }
+            .toggle-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .actions input[type="submit"] {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
+    <?php error_log("Starting to render form - Twilio: " . var_export($twilio_enabled, true) . ", Slack: " . var_export($slack_enabled, true)); ?>
     <div class="container">
         <div class="card">
             <h1>Gmail2sms Configuration</h1>
@@ -318,6 +356,7 @@ $config = parse_ini_file($config_file, true);
             <?php endif; ?>
             
             <form method="post">
+                <!-- Gmail Section -->
                 <div class="form-section">
                     <h2>Gmail Settings</h2>
                     <div class="form-group">
@@ -335,38 +374,86 @@ $config = parse_ini_file($config_file, true);
                     </div>
                 </div>
 
+                <!-- Twilio Section -->
                 <div class="form-section">
                     <h2>Twilio Settings</h2>
                     <div class="form-group">
-                        <label for="destination_number">Destination Number</label>
-                        <input type="text" id="destination_number" name="destination_number" 
-                               value="<?php echo htmlspecialchars($config['Twilio']['destination_number']); ?>" required>
-                        <p class="description">The phone number to send SMS to (format: +1XXXXXXXXXX)</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="from_number">From Number</label>
-                        <input type="text" id="from_number" name="from_number" 
-                               value="<?php echo htmlspecialchars($config['Twilio']['from_number']); ?>" required>
-                        <p class="description">Your Twilio phone number (format: +1XXXXXXXXXX)</p>
-                    </div>
-
-                    
-                    <div class="form-group">
-                        <label for="account_sid">Account SID</label>
-                        <input type="text" id="account_sid" name="account_sid" 
-                               value="<?php echo htmlspecialchars($config['Twilio']['account_sid']); ?>" required>
-                        <p class="description">Your Twilio Account SID</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="auth_token">Auth Token</label>
-                        <input type="password" id="auth_token" name="auth_token" 
-                               value="<?php echo htmlspecialchars($config['Twilio']['auth_token']); ?>" required>
-                        <p class="description">Your Twilio Auth Token</p>
+                        <div class="toggle-container">
+                            <label for="twilio_enabled">Enable SMS Integration</label>
+                            <label class="toggle-switch">
+                                <?php error_log("Rendering Twilio toggle. Current value: " . var_export($twilio_enabled, true)); ?>
+                                <input type="checkbox" id="twilio_enabled" name="twilio_enabled" 
+                                       <?php if ($twilio_enabled) echo 'checked'; ?>>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="description">Enable or disable SMS notifications</p>
                     </div>
 
-                   
+                    <div id="twilio-fields">
+                        <div class="form-group twilio-field">
+                            <label for="account_sid">Account SID</label>
+                            <input type="text" id="account_sid" name="account_sid" 
+                                   value="<?php echo htmlspecialchars($config['Twilio']['account_sid']); ?>">
+                            <p class="description">Your Twilio Account SID</p>
+                        </div>
+
+                        <div class="form-group twilio-field">
+                            <label for="auth_token">Auth Token</label>
+                            <input type="password" id="auth_token" name="auth_token" 
+                                   value="<?php echo htmlspecialchars($config['Twilio']['auth_token']); ?>">
+                            <p class="description">Your Twilio Auth Token</p>
+                        </div>
+
+                        <div class="form-group twilio-field">
+                            <label for="from_number">From Number</label>
+                            <input type="text" id="from_number" name="from_number" 
+                                   value="<?php echo htmlspecialchars($config['Twilio']['from_number']); ?>">
+                            <p class="description">Your Twilio phone number (format: +1XXXXXXXXXX)</p>
+                        </div>
+
+                        <div class="form-group twilio-field">
+                            <label for="destination_number">Destination Number</label>
+                            <input type="text" id="destination_number" name="destination_number" 
+                                   value="<?php echo htmlspecialchars($config['Twilio']['destination_number']); ?>">
+                            <p class="description">The phone number to send SMS to (format: +1XXXXXXXXXX)</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slack Section -->
+                <div class="form-section">
+                    <h2>Slack Settings</h2>
+                    <div class="form-group">
+                        <div class="toggle-container">
+                            <label for="slack_enabled">Enable Slack Integration</label>
+                            <label class="toggle-switch">
+                                <?php error_log("Rendering Slack toggle. Current value: " . var_export($slack_enabled, true)); ?>
+                                <input type="checkbox" id="slack_enabled" name="slack_enabled" 
+                                       <?php if ($slack_enabled) echo 'checked'; ?>>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="description">Enable or disable Slack integration</p>
+                    </div>
+
+                    <div id="slack-fields">
+                        <div class="form-group slack-field">
+                            <label for="slack_token">Slack Bot Token</label>
+                            <input type="password" id="slack_token" name="slack_token" 
+                                   value="<?php echo htmlspecialchars($config['Slack']['token'] ?? ''); ?>">
+                            <p class="description">Your Slack Bot User OAuth Token (starts with xoxb-)</p>
+                        </div>
+
+                        <div class="form-group slack-field">
+                            <label for="slack_channel">Slack Channel</label>
+                            <input type="text" id="slack_channel" name="slack_channel" 
+                                   value="<?php echo htmlspecialchars($config['Slack']['channel'] ?? '#alerts'); ?>">
+                            <p class="description">The Slack channel to send messages to (e.g., #alerts)</p>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Other Settings -->
                 <div class="form-section">
                     <h2>Other Settings</h2>
                     <div class="form-group">
@@ -379,10 +466,58 @@ $config = parse_ini_file($config_file, true);
 
                 <div class="actions">
                     <input type="submit" name="save" value="Save Configuration">
-                    <a href="?logout=1" class="logout">Logout</a>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const twilioToggle = document.getElementById('twilio_enabled');
+        const slackToggle = document.getElementById('slack_enabled');
+        const twilioFields = document.querySelectorAll('.twilio-field');
+        const slackFields = document.querySelectorAll('.slack-field');
+
+        console.log('Initial states - Twilio:', twilioToggle.checked, 'Slack:', slackToggle.checked);
+
+        function updateTwilioFields() {
+            const isEnabled = twilioToggle.checked;
+            console.log('Updating Twilio fields, enabled:', isEnabled);
+            twilioFields.forEach(field => {
+                field.style.display = isEnabled ? 'block' : 'none';
+                const input = field.querySelector('input');
+                if (input) {
+                    input.required = isEnabled;
+                }
+            });
+        }
+
+        function updateSlackFields() {
+            const isEnabled = slackToggle.checked;
+            console.log('Updating Slack fields, enabled:', isEnabled);
+            slackFields.forEach(field => {
+                field.style.display = isEnabled ? 'block' : 'none';
+                const input = field.querySelector('input');
+                if (input) {
+                    input.required = isEnabled;
+                }
+            });
+        }
+
+        twilioToggle.addEventListener('change', function() {
+            console.log('Twilio toggle changed:', this.checked);
+            updateTwilioFields();
+        });
+
+        slackToggle.addEventListener('change', function() {
+            console.log('Slack toggle changed:', this.checked);
+            updateSlackFields();
+        });
+
+        // Initialize fields on page load
+        updateTwilioFields();
+        updateSlackFields();
+    });
+    </script>
 </body>
 </html>
