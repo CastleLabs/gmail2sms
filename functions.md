@@ -1,6 +1,5 @@
-# Comprehensive Documentation of the Email Monitoring and Notification Script
-
-This document provides an in-depth analysis and explanation of the Python script designed to monitor a Gmail inbox for unread emails and send notifications via Twilio SMS and/or Slack messages. The script is modular, allowing for easy maintenance and scalability.
+# gmail2sms Documentaion
+This document provides an in-depth analysis and explanation of the Python script designed to monitor a Gmail inbox for unread emails and send notifications via Twilio SMS and/or Slack messages. 
 
 ---
 
