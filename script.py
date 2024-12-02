@@ -186,7 +186,7 @@ def send_sms_via_twilio(account_sid, auth_token, from_number, to_number, body):
         )
         return message.sid
     except Exception as e:
-        print(f"Failed to send SMS: {e}")
+        print(f"Failed to send SMS to {to_number}: {e}")
         return None
 
 def send_slack_message(token, channel, subject, body):
@@ -311,7 +311,8 @@ def main():
                 TWILIO_ACCOUNT_SID = config.get('Twilio', 'account_sid')
                 TWILIO_AUTH_TOKEN = config.get('Twilio', 'auth_token')
                 TWILIO_FROM_NUMBER = config.get('Twilio', 'from_number')
-                DESTINATION_NUMBER = config.get('Twilio', 'destination_number')
+                # Updated to handle multiple numbers
+                DESTINATION_NUMBERS = [num.strip() for num in config.get('Twilio', 'destination_number').split(',')]
                 MAX_SMS_LENGTH = config.getint('Settings', 'max_sms_length', fallback=1600)
             else:
                 print("SMS notifications are disabled")
@@ -355,18 +356,24 @@ def main():
                 if TWILIO_ENABLED:
                     # Truncate the message body if it exceeds the maximum SMS length
                     sms_body = sms_message_body[:MAX_SMS_LENGTH] if len(sms_message_body) > MAX_SMS_LENGTH else sms_message_body
-                    sms_sid = send_sms_via_twilio(
-                        account_sid=TWILIO_ACCOUNT_SID,
-                        auth_token=TWILIO_AUTH_TOKEN,
-                        from_number=TWILIO_FROM_NUMBER,
-                        to_number=DESTINATION_NUMBER,
-                        body=sms_body
-                    )
-                    if sms_sid:
-                        print(f"Sent SMS with SID: {sms_sid}")
+                    success_sms = False
+                    for to_number in DESTINATION_NUMBERS:
+                        sms_sid = send_sms_via_twilio(
+                            account_sid=TWILIO_ACCOUNT_SID,
+                            auth_token=TWILIO_AUTH_TOKEN,
+                            from_number=TWILIO_FROM_NUMBER,
+                            to_number=to_number,
+                            body=sms_body
+                        )
+                        if sms_sid:
+                            print(f"Sent SMS to {to_number} with SID: {sms_sid}")
+                            success_sms = True
+                        else:
+                            print(f"Failed to send SMS to {to_number}")
+                    if success_sms:
                         success = True
                     else:
-                        print("Failed to send SMS")
+                        print("Failed to send SMS to all recipients")
 
                 # Send to Slack if enabled
                 if SLACK_ENABLED:
@@ -405,6 +412,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
